@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>年会爱心墙</title>
+<link rel="stylesheet" href="/public/tokens.css">
+<link rel="stylesheet" href="/public/player.css">
+<script>
+  /* 阶段状态条只在 ?debug=1 时显示；现场大屏与成片一律不显示 */
+  if (/[?&]debug=1/.test(location.search)) document.documentElement.classList.add('debug');
+</script>
+</head>
+<body>
+<div id="stage">
+
+  <!-- 背景四层：径向渐变 + 左下柔光 + 右下柔光 + 四角暗角 -->
+  <div class="bg bg-base"></div>
+  <div class="bg bg-glow-bl"></div>
+  <div class="bg bg-glow-br"></div>
+  <div class="bg bg-vignette"></div>
+
+  <!-- 照片层（由 player.js 动态填充） -->
+  <div id="cards"></div>
+
+  <!-- 结语（右下角）：主文案 / 公司署名 / 粉心 -->
+  <div id="ending">
+    <div class="e-main"></div>
+    <div class="e-sub"></div>
+    <div class="e-heart">
+      <svg viewBox="0 0 100 92" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M50 88 C 20 64, 4 46, 4 28 C 4 12, 16 4, 28 4 C 38 4, 46 10, 50 18
+                 C 54 10, 62 4, 72 4 C 84 4, 96 12, 96 28 C 96 46, 80 64, 50 88 Z"
+              fill="var(--ink-pink)"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- 阶段状态条 -->
+  <div id="status"></div>
+
+  <!-- 调试控制栏（默认隐藏，按 H 或鼠标移到左下角唤起） -->
+  <div id="hud">
+    <button id="btnPlay" class="primary" type="button">⏸ 暂停</button>
+    <span class="sep"></span>
+    <button id="btnPrev" type="button">‹ 上一张</button>
+    <button id="btnNext" type="button">下一张 ›</button>
+    <span class="sep"></span>
+    <button id="btnConverge" type="button">⇣ 跳到汇聚</button>
+    <button id="btnReplay"   type="button">↻ 重播</button>
+    <span class="sep"></span>
+    <button id="btnAdmin"    type="button">⚙ 管理台</button>
+  </div>
+
+  <!-- 首屏遮罩：必须有一次用户手势，浏览器才允许出声 -->
+  <div id="gate">
+    <div class="gate-title">感谢有你 一路同行</div>
+    <div class="gate-btn">点击开始播放</div>
+    <div class="gate-hint">点击后开始播放（浏览器需要一次点击才能开启声音）</div>
+  </div>
+
+  <!-- 空态：还没有照片 -->
+  <div id="empty">
+    <div class="empty-title">还没有照片</div>
+    <div class="empty-desc">请先打开管理台上传照片</div>
+    <a class="empty-link" href="/admin">前往管理台 →</a>
+  </div>
+
+</div>
+
+<script type="module" src="/public/player.js"></script>
+</body>
+</html>

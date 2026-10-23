@@ -1,0 +1,19 @@
+# ---- 用户数据：绝不进仓库 ----
+# 照片、音乐、config.json（文案与节奏设置）都是使用者自己的东西
+photos/*
+music/*
+config.json
+output/
+logs/
+
+# ---- 本地生成的临时目录 ----
+.export/
+.ref/
+.workbuddy/
+.DS_Store
+._*
+
+# ---- 依赖与构建产物（本项目零依赖零构建，这里只是防手滑）----
+node_modules/
+dist/
+build/

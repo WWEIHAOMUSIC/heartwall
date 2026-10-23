@@ -1,0 +1,75 @@
+/* =============================================================================
+   tokens.css —— 设计令牌（player 与 admin 共用）
+   -----------------------------------------------------------------------------
+   色板严格取自 docs/visual-spec.md §1（从样片逐像素实测）。
+   改任何色值都会让画面偏离已验收的样片观感。
+   ============================================================================= */
+
+:root {
+  /* ——— 背景（暖白 / 米调 / 浅色系，不是深色科技风，不是金色奢华风）——— */
+  --bg-core:  #E9E9EC;   /* 背景中心亮部：冷白，几乎无色偏 */
+  --bg-mid:   #DDDCD3;   /* 背景中段：暖米白 */
+  --bg-edge:  #B8B1A9;   /* 背景边缘暗部：暖灰，带暗角 */
+  --glow-bl:  #DDDAC7;   /* 左下柔光：淡奶黄 */
+  --glow-br:  #E3B39D;   /* 右下柔光：淡肉粉 */
+
+  /* ——— 照片卡 ——— */
+  --frame:    #F4F4F2;   /* 哑光白边框，非纯白 */
+
+  /* ——— 结语 ——— */
+  --ink-red:  #C8102E;   /* 主文案：正红 */
+  --ink-sub:  #4A4A4E;   /* 副文案：深灰 */
+  --ink-pink: #F06086;   /* 粉心图标 */
+
+  /* ——— 管理台外壳（只在后台使用，与播放页视觉无关）——— */
+  --ui-bg:      #EFEFEE;
+  --ui-panel:   #FFFFFF;
+  --ui-line:    #DEDCD8;
+  --ui-text:    #2B2825;
+  --ui-text-2:  #6E6A64;
+  --ui-accent:  #C8102E;
+  --ui-ok:      #2E7D57;
+  --ui-warn:    #B26A00;
+  --ui-err:     #C0392B;
+
+  /* ——— 字体栈 ——— */
+  /* 中文书法/行楷：结语主文案。系统可回退，缺字体时退到宋体系 */
+  --font-brush: "STKaiti", "Kaiti SC", "KaiTi", "楷体", "Songti SC", "SimSun", serif;
+  /* 正文/界面 */
+  --font-ui: -apple-system, BlinkMacSystemFont, "PingFang SC",
+             "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  /* 数字/等宽（管理台的尺寸标注用） */
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* ============================ 重置 ============================ */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-ui);
+  color: var(--ui-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 表单元素继承字体，避免管理台里出现默认 UI 字体 */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+/* 图片不被拖拽出幽灵、不被选中 */
+img {
+  -webkit-user-drag: none;
+  user-select: none;
+}

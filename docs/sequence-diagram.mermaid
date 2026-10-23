@@ -1,0 +1,119 @@
+%% 年会爱心墙 · 程序调用流程（对应 docs/architecture.md §5）
+%% 一张端到端时序图，覆盖「管理员上传→排序→保存」与「播放页加载→三幕→定格」两个阶段。
+%% 可粘贴到 https://mermaid.live 或支持 mermaid 的 Markdown 预览器验证。
+
+sequenceDiagram
+    autonumber
+    actor Op as 操作员
+    participant A as admin.js
+    participant CV as 浏览器Canvas
+    participant P as player.js
+    participant H as heart.js
+    participant Au as AudioManager
+    participant S as server.js
+    participant FS as 文件系统
+
+    rect rgb(245, 245, 243)
+    Note over Op,FS: 阶段一 · 管理员上传照片 → 排序 → 保存
+    Op->>A: 拖入 41 张照片（或点「选择照片」）
+    A->>A: 校验扩展名与体积，入队
+
+    loop 并发度 3，逐张
+        A->>CV: createImageBitmap(file)
+        CV-->>A: sourceBitmap
+        A->>CV: 计算长边≤1600，drawImage 缩放
+        A->>CV: canvas.toBlob('image/jpeg', 0.86)
+        CV-->>A: blob (~300KB)
+        A->>S: POST /api/photos?name=..&w=..&h=.. (Body 为原始二进制)
+        S->>S: 校验 Content-Length ≤ 8MB 与文件魔数
+        S->>FS: 写 photos/.upload-ts.tmp
+        S->>FS: rename → photos/id.jpg
+        S->>FS: 更新 manifest.items[id] + order.push(id)
+        S->>FS: 原子写 manifest.json（tmp+rename）
+        S-->>A: code 0, data id/url/aspect
+        A->>A: 缩略图插入列表尾部，进度 +1
+    end
+
+    Op->>A: 拖拽调整顺序（原生 HTML5 DnD）
+    A->>A: 重排 DOM，读取新顺序为 ids 数组
+    Op->>A: 点「保存排序」
+    A->>S: PUT /api/photos/order ids
+    S->>S: 校验 ids 全部存在，未覆盖的追加末尾
+    S->>FS: 原子写 manifest.json
+    S-->>A: code 0, data order/count
+    A-->>Op: Toast「已保存 41 张的播放顺序」
+
+    Op->>A: 修改结语 / 停留时长 / 循环开关
+    A->>S: PUT /api/config text, playback
+    S->>S: 深合并 + 逐字段校验（1500≤closeupDuration≤8000）
+    S->>FS: 原子写 config.json
+    S-->>A: code 0, data 完整 config
+
+    Op->>A: 点「打开大屏播放页」
+    A->>A: window.open('/', '_blank')
+    end
+
+    rect rgb(253, 240, 243)
+    Note over Op,FS: 阶段二 · 播放页加载 → 三幕动线 → 定格
+    P->>S: GET /api/config
+    S-->>P: config（文案 / 节奏 / 心形参数）
+    P->>S: GET /api/photos
+    S-->>P: photos[] 已排序，含 aspect
+    P->>S: GET /api/music
+    S-->>P: tracks[] + active
+    P-->>Op: 显示「点击开始播放」（同时解锁音频自动播放策略）
+
+    Op->>P: 点击画面
+    P->>Au: load(tracks, cfg)，play() + 1.5s 音量淡入
+    P->>P: preloadImages(photos)，失败项剔除
+    P->>H: layoutHeart(n, W, H, aspects, cfg.heart)
+    H->>H: spansAtDepth 求横带区间（顶部凹口返回 2 段）
+    H->>H: 面积守恒闭式解 rowH0 → R0 → 夹到 minRows..maxRows
+    H->>H: 按段宽比例分配张数，收敛到恰好 n 张
+    H->>H: 底部收口约束（倒数三行 ≥3 / ≥2 / =1）
+    H->>H: 二分校正基准行高使 各行高之和+行缝 = heartH
+    H->>H: 逐段 justify：格宽 = aspect × 行高，余量匀到间隙
+    H-->>P: cells[41], heartW 1064, heartH 924, rows 8
+
+    P->>P: buildCards()，基准尺寸 = 特写尺寸（0.5W，竖向按 0.86H 收）
+    P->>P: initFloat()，抖动网格铺满 + 深度 z 2..10 + 漂移相位 + 2 张中心锚点
+    P->>P: 启动 rAF 主循环
+
+    Note over P: 第一幕 · 3D 漂浮 — floatDuration 6000ms
+    loop 每帧
+        P->>P: tick(ts) → dt = min(ts-last, 60ms)
+        P->>P: step(dt) 判定是否进下一幕
+        P->>P: render(dt) 向 floatTarget 指数平滑逼近，k = 1 - exp(-3.6·dt)
+        P->>P: applyDom() transform + filter blur(blur/scale) + zIndex
+    end
+
+    P->>P: enterCloseup(0)，floatDuration 到时
+    Note over P: 第二幕 · 逐张特写 — N × closeupDuration
+    loop 每张照片
+        P->>P: 当前卡移到屏幕中心，宽 0.5W，呼吸缩放 ±1.5% / 4s
+        P->>P: 其余卡保持漂浮位，缩到 bgScale 0.42，模糊 3.4–5.6px
+        P->>P: modeT ≥ closeupDuration 则 activeIdx++
+    end
+
+    P->>P: enterConverge()，全部特写播完
+    P->>P: 快照 from = cur，按距中心距离算 delay ≤ 500ms
+    P->>P: zTarget = 400 + cell.row×6 + rand(±2)
+    Note over P: 第三幕 · 汇聚成型 — 7000ms + stagger 500ms
+    loop 每帧
+        P->>P: local = clamp((modeT - delay)/7000, 0, 1)
+        P->>P: p = cubicBezier(0.45,0.05,0.25,1)(local)
+        P->>P: cur = lerp(from, 心形目标 / 缩放1 / 旋转0 / 模糊0, p)
+    end
+
+    P->>P: finishConverge()，mode=done，cur 锁死 p=1
+    P->>P: setTimeout(showAfterConverge = 1000)
+    P-->>Op: 结语淡入 2s（右下角，红书法体 + 公司名 + 粉心）
+    P-->>Op: 顶部状态条「定格 · 感谢有你」
+
+    alt config.playback.loop === true
+        P->>P: setTimeout(loopDelay = 15000)
+        P->>P: loopRestart() → initFloat() → mode=float → modeT=0，音频不中断
+    else loop === false
+        P->>P: 定格保持，等待操作员按 R 重播
+    end
+    end

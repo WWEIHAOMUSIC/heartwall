@@ -1,0 +1,181 @@
+%% 年会爱心墙 · 模块与数据结构（对应 docs/architecture.md §4.5）
+%% 语法采用 mermaid classDiagram 官方成员写法：`+类型 名称` / `+方法名(参数) 返回类型`
+
+classDiagram
+  class HeartModule {
+    <<module>>
+    +number HEART_CURVE_W
+    +number HEART_CURVE_H
+    +number HEART_ASPECT
+    +HeartConfig HEART_DEFAULTS
+    +number[] ASPECT_CLAMP
+    +number clamp(v, lo, hi)
+    +number lerp(a, b, t)
+    +number hash01(i, salt)
+    +number hashTri(i, salt)
+    +Function cubicBezier(x1, y1, x2, y2)
+    +number[][] spansAtDepth(d)
+    +number aspectFor(index, photo, opts)
+    +LayoutResult layoutHeart(n, W, H, aspects, heartCfg)
+  }
+
+  class LayoutResult {
+    +List~Cell~ cells
+    +number heartW
+    +number heartH
+    +number left
+    +number top
+    +number rowH
+    +number rows
+    +number rowHint
+    +number[] counts
+    +number maxShrink
+    +number vGap
+    +number meanAspect
+  }
+
+  class Cell {
+    +number x
+    +number y
+    +number w
+    +number h
+    +number aspect
+    +number row
+    +boolean notch
+  }
+
+  class HeartConfig {
+    +number heightRatio
+    +number centerY
+    +number maxWidthRatio
+    +number widen
+    +number minRows
+    +number maxRows
+    +number gapRatio
+    +number rowGapRatio
+    +number forceRows
+  }
+
+  class Photo {
+    +string id
+    +string url
+    +number w
+    +number h
+    +number aspect
+    +number size
+    +string addedAt
+  }
+
+  class State {
+    +number x
+    +number y
+    +number s
+    +number r
+    +number blur
+    +number op
+    +number z
+  }
+
+  class Card {
+    +HTMLElement el
+    +HTMLImageElement img
+    +number i
+    +number w0
+    +number h0
+    +number aspect
+    +Cell cell
+    +number heartScale
+    +State cur
+    +State from
+    +number delay
+    +number zTarget
+    +number fx
+    +number fy
+    +number fz
+    +boolean isAnchor
+  }
+
+  class PlayerScene {
+    <<module>>
+    +number W
+    +number H
+    +List~Photo~ photos
+    +List~Card~ cards
+    +LayoutResult layout
+    +string mode
+    +number modeT
+    +boolean playing
+    +number activeIdx
+    +number floatClock
+    +Promise init(photos, cfg)
+    +void build(count)
+    +void initFloat()
+    +State floatTarget(c, timeSec)
+    +State closeupTarget(c, activeCard, tMs)
+    +void enterCloseup(idx)
+    +void enterConverge()
+    +void finishConverge()
+    +void loopRestart()
+    +void step(dt)
+    +void render(dt)
+    +void applyDom()
+    +void resize()
+    +void control(action)
+  }
+
+  class AudioManager {
+    <<module>>
+    +HTMLAudioElement el
+    +boolean ready
+    +boolean started
+    +Promise load(tracks, cfg)
+    +void start()
+    +void pause()
+    +void resume()
+    +void setVolume(v)
+  }
+
+  class AdminApp {
+    <<module>>
+    +List~Photo~ photos
+    +Config cfg
+    +List~Track~ tracks
+    +Promise loadAll()
+    +void renderList()
+    +Promise compressImage(file)
+    +Promise uploadAll(files)
+    +void onDropReorder()
+    +Promise saveOrder()
+    +Promise deletePhoto(id)
+    +Promise clearAll()
+    +Promise saveConfig(patch)
+    +void renderHeartPreview()
+  }
+
+  class ServerApi {
+    <<module>>
+    +Config DEFAULT_CONFIG
+    +Config getConfig()
+    +Config saveConfig(patch)
+    +List~Photo~ getPhotos()
+    +Photo addPhoto(req, query)
+    +void deletePhoto(id)
+    +string[] setOrder(ids)
+    +number clearPhotos()
+    +List~Track~ getMusic()
+    +void serveStatic(req, res, urlPath)
+    +void sendJson(res, code, data, message, error)
+  }
+
+  HeartModule ..> LayoutResult : creates
+  HeartModule ..> HeartConfig : uses
+  LayoutResult o-- Cell
+  Card o-- Cell
+  Card *-- State
+  PlayerScene o-- Card
+  PlayerScene o-- Photo
+  PlayerScene ..> HeartModule : imports
+  PlayerScene --> AudioManager : composes
+  AdminApp ..> HeartModule : imports
+  AdminApp ..> ServerApi : REST over HTTP
+  PlayerScene ..> ServerApi : REST over HTTP

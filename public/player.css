@@ -1,0 +1,366 @@
+/* =============================================================================
+   player.css —— 播放页样式
+   -----------------------------------------------------------------------------
+   从已验收原型 prototype/index.html 的 <style> 逐条移植，视觉参数一个字未改。
+   唯一改动：
+     · 色板改为引用 tokens.css（值完全相同）
+     · z-index 按 docs/architecture.md §7.5 统一分层
+     · 新增首屏「点击开始播放」遮罩（音频自动播放策略需要）
+   ============================================================================= */
+
+:root {
+  /* 画面尺寸，由 player.js 在 resize 时写入实际像素值 */
+  --w: 1440px;
+  --h: 810px;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg-edge);
+}
+
+/* ============================ 舞台 ============================ */
+
+#stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg-mid);
+}
+
+/* ——— 背景四层叠加（暖白米调；四角暗角不均匀，故用四段独立渐变）——— */
+.bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.bg-base {
+  z-index: 0;
+  background: radial-gradient(ellipse 92% 96% at 50% 46%,
+              var(--bg-core) 0%,
+              var(--bg-mid)  46%,
+              var(--bg-edge) 100%);
+}
+
+.bg-glow-bl {
+  z-index: 1;
+  background: radial-gradient(circle at 10% 90%,
+              rgba(221, 218, 199, 0.88) 0%,
+              rgba(221, 218, 199, 0.34) 30%,
+              rgba(221, 218, 199, 0) 58%);
+}
+
+.bg-glow-br {
+  z-index: 2;
+  background: radial-gradient(circle at 92% 84%,
+              rgba(227, 179, 157, 0.74) 0%,
+              rgba(227, 179, 157, 0.26) 30%,
+              rgba(227, 179, 157, 0) 58%);
+}
+
+/* 四角暗角：四个角落的局部渐变，只压四角，不碰画面中段。
+   样片四角明暗并不均匀（上两角比下两角重），故不可合并成单个 vignette 蒙层。 */
+.bg-vignette {
+  z-index: 3;
+  background:
+    radial-gradient(circle at 0% 0%,    rgba(58, 54, 58, 0.22) 0%, rgba(58, 54, 58, 0.075) 20%, rgba(58, 54, 58, 0) 42%),
+    radial-gradient(circle at 100% 0%,  rgba(54, 50, 56, 0.24) 0%, rgba(54, 50, 56, 0.080) 20%, rgba(54, 50, 56, 0) 42%),
+    radial-gradient(circle at 0% 100%,  rgba(58, 54, 50, 0.12) 0%, rgba(58, 54, 50, 0.040) 20%, rgba(58, 54, 50, 0) 42%),
+    radial-gradient(circle at 100% 100%, rgba(52, 52, 60, 0.15) 0%, rgba(52, 52, 60, 0.050) 20%, rgba(52, 52, 60, 0) 42%);
+}
+
+/* ============================ 照片卡 ============================ */
+
+#cards {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.card {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-style: solid;
+  border-color: var(--frame);
+  background: var(--frame);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  border-radius: 0;
+  transform-origin: 50% 50%;
+  will-change: transform, filter, opacity;
+  overflow: hidden;
+  backface-visibility: hidden;
+}
+
+.card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 42%;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+/* ============================ 结语 ============================ */
+
+#ending {
+  position: absolute;
+  right: calc(var(--w) * 0.033);
+  top: calc(var(--h) * 0.827);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(calc(var(--w) * 0.016));
+  transition: opacity 2s cubic-bezier(0.22, 0.61, 0.36, 1),
+              transform 2s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+#ending.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.e-main {
+  font-family: var(--font-brush);
+  font-size: calc(var(--w) * 0.0365);
+  line-height: 1.10;
+  font-weight: 600;
+  color: var(--ink-red);
+  letter-spacing: calc(var(--w) * 0.0020);
+  text-shadow: 0 1px 2px rgba(120, 10, 30, 0.10);
+  margin: 0;
+  white-space: nowrap;
+}
+
+.e-sub {
+  font-size: calc(var(--w) * 0.0235);
+  line-height: 1.2;
+  color: var(--ink-sub);
+  letter-spacing: calc(var(--w) * 0.0010);
+  margin: 0;
+  white-space: nowrap;
+}
+
+/* 副文案为空时整行不渲染 */
+.e-sub:empty {
+  display: none;
+}
+
+.e-heart {
+  width: calc(var(--w) * 0.095);
+  height: auto;
+  display: block;
+  align-self: flex-end;      /* 粉心偏右，与样片一致 */
+  margin-top: calc(var(--w) * 0.002);
+}
+
+.e-heart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ============================ 状态条 ============================ */
+
+#status {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--h) * 0.030);
+  transform: translateX(-50%);
+  z-index: 1100;
+  font-size: calc(var(--w) * 0.0112);
+  letter-spacing: calc(var(--w) * 0.0010);
+  color: rgba(74, 66, 56, 0.62);
+  background: rgba(255, 255, 255, 0.34);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 999px;
+  padding: calc(var(--w) * 0.0042) calc(var(--w) * 0.0098);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.32s ease;
+  white-space: nowrap;
+}
+
+#status.show {
+  opacity: 0.92;
+}
+
+/* 现场大屏与成片里绝不能出现阶段调试信息（"第二幕 · 逐张特写 1/41"）。
+   默认整条隐藏，只有 URL 带 ?debug=1 时才显示，供彩排排查用。 */
+html:not(.debug) #status {
+  display: none !important;
+}
+
+/* ============================ 控制栏 ============================ */
+/* 现场正式播放时不该看到按钮，故默认隐藏，按 H 或把鼠标移到左下角唤起 */
+
+#hud {
+  position: absolute;
+  left: calc(var(--w) * 0.022);
+  bottom: calc(var(--h) * 0.028);
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--w) * 0.0038);
+  padding: calc(var(--w) * 0.0050) calc(var(--w) * 0.0078);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  box-shadow: 0 6px 26px rgba(90, 80, 70, 0.13);
+  backdrop-filter: blur(14px) saturate(1.15);
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
+  user-select: none;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.32s ease, visibility 0.32s;
+}
+
+#hud.show {
+  opacity: 0.42;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+#hud.show:hover {
+  opacity: 1;
+}
+
+#hud button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #4A4238;
+  font-size: calc(var(--w) * 0.0122);
+  line-height: 1;
+  padding: calc(var(--w) * 0.0052) calc(var(--w) * 0.0080);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+  white-space: nowrap;
+}
+
+#hud button:hover  { background: rgba(255, 255, 255, 0.86); color: #1F1A15; }
+#hud button:active { background: rgba(255, 255, 255, 1); }
+
+#hud button.primary {
+  background: rgba(200, 16, 46, 0.90);
+  color: #fff;
+  font-weight: 600;
+}
+
+#hud button.primary:hover { background: rgba(200, 16, 46, 1); color: #fff; }
+
+#hud .sep {
+  width: 1px;
+  height: calc(var(--w) * 0.0155);
+  background: rgba(90, 80, 70, 0.20);
+  margin: 0 calc(var(--w) * 0.0016);
+}
+
+/* ============================ 首屏遮罩 ============================ */
+/* 浏览器要求先有用户手势才能出声，所以必须先点一下 */
+
+#gate {
+  position: absolute;
+  inset: 0;
+  z-index: 1150;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--w) * 0.016);
+  background: rgba(233, 233, 236, 0.30);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  cursor: pointer;
+  opacity: 1;
+  transition: opacity 0.6s ease, visibility 0.6s;
+}
+
+#gate.hide {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.gate-title {
+  font-family: var(--font-brush);
+  font-size: calc(var(--w) * 0.040);
+  color: var(--ink-red);
+  letter-spacing: calc(var(--w) * 0.0030);
+  text-shadow: 0 1px 3px rgba(120, 10, 30, 0.10);
+}
+
+.gate-btn {
+  font-size: calc(var(--w) * 0.0130);
+  color: #4A4238;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 999px;
+  padding: calc(var(--w) * 0.0072) calc(var(--w) * 0.0190);
+  letter-spacing: calc(var(--w) * 0.0018);
+  box-shadow: 0 6px 22px rgba(90, 80, 70, 0.12);
+}
+
+.gate-hint {
+  font-size: calc(var(--w) * 0.0102);
+  color: rgba(74, 66, 56, 0.50);
+  letter-spacing: calc(var(--w) * 0.0010);
+}
+
+/* ============================ 空态 ============================ */
+
+#empty {
+  position: absolute;
+  inset: 0;
+  z-index: 1160;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--w) * 0.014);
+  background: rgba(233, 233, 236, 0.55);
+}
+
+#empty.show {
+  display: flex;
+}
+
+.empty-title {
+  font-family: var(--font-brush);
+  font-size: calc(var(--w) * 0.026);
+  color: var(--ink-sub);
+  letter-spacing: calc(var(--w) * 0.0022);
+}
+
+.empty-desc {
+  font-size: calc(var(--w) * 0.0118);
+  color: rgba(74, 66, 56, 0.62);
+  letter-spacing: calc(var(--w) * 0.0008);
+}
+
+.empty-link {
+  font-size: calc(var(--w) * 0.0122);
+  color: var(--ink-red);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(200, 16, 46, 0.35);
+  padding-bottom: 2px;
+}
+
+.empty-link:hover {
+  border-bottom-color: var(--ink-red);
+}
