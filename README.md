@@ -4,11 +4,23 @@
 
 ![年会爱心墙动效演示](docs/demo.gif)
 <!-- ↑ 首屏演示 GIF：43 张照片汇聚成心 + 心形定格 + 结语淡入
-     （720×405 / 10fps / 14 秒 / 3.1MB，取自成片 46–60 秒尾段）。
+     （720×405 / 8fps / 14 秒 / 4.8MB，取自成片 46–60 秒尾段）。
      完整流程是「3D 漂浮 → 逐张特写（一张不漏）→ 汇聚成心」，
      GIF 只截最高潮的汇聚段，方便别人快速看到最终效果。
-     想重新生成：用 demo/photos 的素材跑一遍导出 MP4，再
-       ffmpeg -ss 46 -t 14 -i output/demo.mp4 -vf "fps=10,scale=720:-1:flags=lanczos" -loop 0 docs/demo.gif -->
+     素材是 demo/gif-source/ 里 4 张 AI 生成的动物图随机铺成 43 张
+     （已裁掉 AI 水印），来源见 demo/CREDITS.md。
+
+     想重新生成（命令可复现，出来的就是这个 GIF）：
+       for n in $(seq 1 43); do cp demo/gif-source/动物_0$((RANDOM%4+1)).jpg photos/动物_$(printf %02d $n).jpg; done
+       启动服务，然后：
+       node tools/export-video.mjs --out output/demo.mp4 --hold 4
+       ffmpeg -ss 46 -t 14 -i output/demo.mp4 \
+              -vf "fps=8,scale=720:-1:flags=lanczos,palettegen=stats_mode=diff" palette.png
+       ffmpeg -ss 46 -t 14 -i output/demo.mp4 -i palette.png \
+              -filter_complex "fps=8,scale=720:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=none" \
+              -loop 0 docs/demo.gif
+     注：palettegen 生成专用调色板是消除渐变背景色带的关键，
+         直接 scale 转 GIF 会在背景上留一层噪点纹路。 -->
 
 - **零依赖、零构建**：只用 Node 自带的 `http`，前端是原生 ES Module，没有 `npm install`，没有打包器。
 - **双击即用**：Mac 双击 `start.command`，Windows 双击 `start.bat`，Linux 跑 `./start.sh`。
