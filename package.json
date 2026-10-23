@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "年会爱心墙 —— 照片漂浮、逐张特写、汇聚成心的年会动效（零依赖 / 零构建）",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "engines": {
     "node": ">=16"
   },
