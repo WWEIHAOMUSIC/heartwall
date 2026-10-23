@@ -2,11 +2,10 @@
 
 照片从四面八方飘来，逐张特写，最后聚成一颗心 —— 一条 40 秒左右的年会暖场/收尾片。
 
-![年会爱心墙效果](docs/demo.jpg)
-<!-- ↑ 首屏演示图（1600×900 心形定格）。
-     想换成动态 GIF：双击「导出视频.command」导一段，再
-       ffmpeg -i output/年会爱心墙_1920x1080.mp4 -vf "fps=12,scale=960:-1:flags=lanczos" -loop 0 docs/demo.gif
-     然后把上面的引用改成 docs/demo.gif。 -->
+![年会爱心墙动效演示](docs/demo.gif)
+<!-- ↑ 首屏演示 GIF（640×360 / 8fps / 16 秒，含漂浮 → 逐张特写 → 汇聚成心）。
+     想重新生成：用 demo/photos 里的素材跑一遍，导出 MP4 后
+       ffmpeg -i output/demo.mp4 -t 16 -vf "fps=8,scale=640:-1:flags=lanczos" -loop 0 docs/demo.gif -->
 
 - **零依赖、零构建**：只用 Node 自带的 `http`，前端是原生 ES Module，没有 `npm install`，没有打包器。
 - **双击即用**：Mac 双击 `start.command`，Windows 双击 `start.bat`，Linux 跑 `./start.sh`。
